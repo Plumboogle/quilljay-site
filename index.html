@@ -21,6 +21,7 @@
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
+  html { background: #05080A; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -154,6 +155,24 @@
     box-shadow: 0 8px 24px rgba(34,224,122,.3);
     outline: none;
   }
+  /* Launch button + the wipe into the game (green, then the game's dark background, then /play/) */
+  .launch {
+    margin-top: 10px; align-self: flex-start; display: inline-flex; flex-direction: column; gap: 4px;
+    color: var(--bg); background: var(--up); text-decoration: none; padding: 16px 26px 14px;
+    animation: pulse 2.4s ease-in-out infinite; transition: transform .15s;
+  }
+  .launch b { font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: clamp(26px, 5vw, 38px); letter-spacing: .04em; line-height: 1; }
+  .launch small { font-size: 12px; font-weight: 800; letter-spacing: .14em; opacity: .75; }
+  .launch:hover, .launch:focus-visible { transform: translateY(-2px); outline: none; }
+  .launch:focus-visible { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--up); }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 rgba(34,224,122,0); } 50% { box-shadow: 0 0 36px rgba(34,224,122,.45); } }
+  .warp { position: fixed; inset: 0; z-index: 50; pointer-events: none; visibility: hidden; background: var(--up);
+    clip-path: circle(0 at var(--x, 50%) var(--y, 50%)); }
+  .warp::after { content: ""; position: absolute; inset: 0; background: var(--bg); clip-path: circle(0 at var(--x, 50%) var(--y, 50%)); }
+  body.launching .warp { visibility: visible; animation: warp .55s cubic-bezier(.7, 0, .3, 1) forwards; }
+  body.launching .warp::after { animation: warp .45s .25s cubic-bezier(.7, 0, .3, 1) forwards; }
+  body.launching .content { transition: transform .5s ease-in, opacity .5s ease-in; transform: scale(1.06); opacity: 0; }
+  @keyframes warp { to { clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); } }
   footer {
     display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     padding: 14px 20px; font-size: 12px; color: var(--muted); letter-spacing: 0.1em;
@@ -161,7 +180,7 @@
     position: relative; z-index: 2; background: var(--bg);
   }
   @media (prefers-reduced-motion: reduce) {
-    .tape .track, .status::before { animation: none; }
+    .tape .track, .status::before, .launch { animation: none; }
   }
 </style>
 </head>
@@ -185,8 +204,10 @@
         <span>Status <b>Coming soon</b></span>
         <span>Exchange <b>quilljay.com</b></span>
       </div>
+      <a class="launch" id="launch" href="/play/"><b>Play the market &#9654;</b><small>SPY 0DTE &middot; practice money</small></a>
     </div>
   </section>
+  <div class="warp" id="warp" aria-hidden="true"></div>
 
   <div class="tape rev" aria-hidden="true"><div class="track" id="tapeB"></div></div>
   <footer><span>&copy; 2026 QUILLJAY</span><span>Not a real stock. Not financial advice.</span></footer>
@@ -264,6 +285,32 @@
   function start() { build(); progress = reduce ? 1 : 0; reduce ? draw() : loop(); }
   addEventListener('resize', () => { build(); draw(); });
   start();
+
+  // Launch: warm the game's files on hover, then wipe into it
+  const launch = document.getElementById('launch'), warp = document.getElementById('warp');
+  let warmed = false;
+  function warm() {
+    if (warmed) return;
+    warmed = true;
+    for (const f of ['/play/', '/play/app.js', '/play/engine.js', '/play/play.css']) {
+      const l = document.createElement('link'); l.rel = 'prefetch'; l.href = f; document.head.appendChild(l);
+    }
+    fetch('/play/days/index.json').then((r) => r.json()).then((j) => j.days[0] && fetch('/play/days/' + j.days[0].file)).catch(() => {});
+  }
+  launch.addEventListener('pointerenter', warm);
+  launch.addEventListener('focus', warm);
+  launch.addEventListener('touchstart', warm, { passive: true });
+  launch.addEventListener('click', (e) => {
+    if (reduce || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    warm();
+    const r = launch.getBoundingClientRect();
+    warp.style.setProperty('--x', `${r.left + r.width / 2}px`);
+    warp.style.setProperty('--y', `${r.top + r.height / 2}px`);
+    document.body.classList.add('launching');
+    setTimeout(() => { location.href = launch.href; }, 720);
+  });
+  addEventListener('pageshow', (e) => { if (e.persisted) document.body.classList.remove('launching'); }); // back button
 </script>
 </body>
 </html>

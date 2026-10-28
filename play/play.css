@@ -16,6 +16,9 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
+html { background: #05080A; } /* no white flash arriving from the home page */
+@keyframes enter { from { opacity: 0; } }
+body { animation: enter .45s ease-out; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -188,4 +191,4 @@ body.view-arcade .trade b { font-size: 36px; }
   body.view-arcade .trade { min-height: 72px; }
   body.view-arcade .trade b { font-size: 30px; }
 }
-@media (prefers-reduced-motion: reduce) { .trade, .toast { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .trade, .toast { transition: none; } body { animation: none; } }
