@@ -287,7 +287,9 @@ function frame(now) {
     const ease = (cur, to) => (cur == null || !S.playing ? to : cur + (to - cur) * (1 - Math.exp(-dt * 14)));
     S.disp = ease(S.disp, target);
     const m = S.acct.pos ? S.acct.mark(S.day, idx()) : null;
-    S.dispV = m ? ease(S.dispV, m.value) : null; // the cash-out value line's head
+    // the cash-out line's head glides, but never sits on the other side of PAID from the P&L shown
+    const v = m ? ease(S.dispV, m.value) : null;
+    S.dispV = m && (v >= S.acct.pos.cost) !== (m.value >= S.acct.pos.cost) ? m.value : v;
     render();
     if (now - lastSave > 2000) { save(); lastSave = now; }
   }
@@ -466,7 +468,7 @@ function tag(x, y, text, bg, fg = "#05080A") {
 
 function drawLine(w, h, arcade) {
   const d = S.day, p = S.acct.pos, m = S.acct.mark(d, idx());
-  if (arcade && p && p.day === d.id) return drawPayout(w, h, p, m);
+  if (p && p.day === d.id) return drawPayout(w, h, p, m, !arcade);
   const b = S.pos, span = arcade ? Math.min(ARCADE_WIN[S.speed] || 300, Math.max(60, b)) : Math.min(S.zoom, DAY_S);
   const a = arcade ? b - span : Math.max(0, Math.min(b - span, DAY_S - span));
   const right = arcade ? w - 70 : w - 64, x0 = arcade ? 0 : 8, top = arcade ? 30 : 48, bot = h - (arcade ? 30 : 28);
@@ -475,8 +477,7 @@ function drawLine(w, h, arcade) {
   if (!pts.length) return;
   pts[pts.length - 1].x = xHead;
   pts[pts.length - 1].v = S.disp;
-  let lo = Math.min(...pts.map((q) => q.lo), S.disp), hi = Math.max(...pts.map((q) => q.hi), S.disp);
-  if (p && p.day === d.id) { lo = Math.min(lo, p.spy); hi = Math.max(hi, p.spy); }
+  const lo = Math.min(...pts.map((q) => q.lo), S.disp), hi = Math.max(...pts.map((q) => q.hi), S.disp);
   const y = yScale(lo, hi, top, bot, arcade ? 0.3 : 0.15);
   if (!arcade) axes(y, x0, right, top, bot, [a, a + span]);
   else { // faint grid only
@@ -507,15 +508,6 @@ function drawLine(w, h, arcade) {
   ctx.stroke();
   ctx.restore();
 
-  // entry line
-  if (p && p.day === d.id) {
-    const ey = Math.round(y(p.spy)) + 0.5;
-    ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x0, ey); ctx.lineTo(right, ey); ctx.stroke(); ctx.setLineDash([]);
-    tag(x0 + 4, ey, `IN ${p.spy.toFixed(2)}`, C.amber); // left edge: clear of the price tag on the right
-    const ex = x0 + ((p.i - a) / span) * (xHead - x0) * (arcade ? 1 : (right - x0) / (xHead - x0 || 1));
-    if (ex >= x0) { ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(ex, y(p.spy), 4, 0, 7); ctx.fill(); }
-  }
   // past trades of this day
   if (!arcade) for (const t of S.acct.trades) if (t.day === d.id) {
     for (const [ti, c] of [[t.i, t.side === "long" ? C.up : C.down], [t.out, C.muted]]) {
@@ -535,39 +527,47 @@ function drawLine(w, h, arcade) {
   tag(right + 4, hy, S.disp.toFixed(2), col);
 }
 
-// Arcade while in a trade: what CASH OUT pays (bid x 100 x qty, minus the exit fee) since entry, against what you
-// paid (ask x 100 x qty plus the entry fee). Above the dashed line you're up, below it you're down; no fees come after.
-function drawPayout(w, h, p, m) {
-  const d = S.day, b = S.pos, right = w - 84, top = 40, bot = h - 34;
-  const span = Math.min(ARCADE_WIN[S.speed] || 300, Math.max(20, b - p.i)), a = Math.max(p.i, b - span);
-  const X = (t) => ((t - (b - span)) / span) * right;
-  const per = Math.max(1, span / right), pts = [];
-  for (let t = a; t < Math.floor(b); t += per) { const v = S.acct.mark(d, Math.floor(t)).value; pts.push([X(Math.floor(t)), v]); }
+// Arcade and Line while in a trade: what CASH OUT pays (bid x 100 x qty, minus the exit fee) since entry, against what
+// you paid (ask x 100 x qty plus the entry fee). The line is green above the PAID line and red below it, the same
+// sign as the P&L shown, so the picture and the number always agree; no fees come after.
+function drawPayout(w, h, p, m, framed) {
+  const d = S.day, b = S.pos;
+  const x0 = framed ? 8 : 0, right = framed ? w - 64 : w - 84, top = framed ? 48 : 40, bot = h - (framed ? 28 : 34);
+  const win = framed ? S.zoom : ARCADE_WIN[S.speed] || 300;
+  const span = Math.min(win, Math.max(20, b - p.i)), a = Math.max(p.i, b - span);
+  const X = (t) => x0 + ((t - (b - span)) / span) * (right - x0);
+  const per = Math.max(1, span / (right - x0)), pts = [];
+  for (let t = a; t < Math.floor(b); t += per) { const s = Math.floor(t); pts.push([X(s), S.acct.mark(d, s).value]); }
   pts.push([right, S.dispV ?? m.value]);
   const vs = pts.map((q) => q[1]);
   const y = yScale(Math.min(p.cost, ...vs), Math.max(p.cost, ...vs), top, bot, Math.max(1, p.cost * 0.04));
-  ctx.strokeStyle = C.grid;
-  for (let gy = top; gy < bot; gy += 64) { ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(w, gy + 0.5); ctx.stroke(); }
-  const head = pts[pts.length - 1][1], col = head >= p.cost ? C.up : C.down, cy = Math.round(y(p.cost)) + 0.5;
-  // fill between the line and what you paid
-  ctx.beginPath();
-  pts.forEach(([x, v], j) => (j ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v))));
-  ctx.lineTo(right, cy); ctx.lineTo(pts[0][0], cy); ctx.closePath();
-  ctx.fillStyle = col + "26"; ctx.fill();
-  ctx.save();
-  ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineJoin = "round";
-  ctx.beginPath();
-  pts.forEach(([x, v], j) => (j ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v))));
-  ctx.stroke();
-  ctx.restore();
+  if (framed) axes(y, x0, right, top, bot, [b - span, b]);
+  else {
+    ctx.strokeStyle = C.grid;
+    for (let gy = top; gy < bot; gy += 64) { ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(w, gy + 0.5); ctx.stroke(); }
+  }
+  const cy = Math.round(y(p.cost)) + 0.5;
+  const path = () => { ctx.beginPath(); pts.forEach(([x, v], j) => (j ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v)))); };
+  for (const [col, y0, y1] of [[C.up, 0, cy], [C.down, cy, h]]) { // above PAID: green; below: red
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, y0, w, y1 - y0); ctx.clip();
+    path(); ctx.lineTo(right, cy); ctx.lineTo(pts[0][0], cy); ctx.closePath();
+    ctx.fillStyle = col + "26"; ctx.fill();
+    if (!framed) { ctx.shadowColor = col; ctx.shadowBlur = 14; }
+    ctx.strokeStyle = col; ctx.lineWidth = framed ? 2 : 3; ctx.lineJoin = "round";
+    path(); ctx.stroke();
+    ctx.restore();
+  }
   ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(right, cy); ctx.stroke(); ctx.setLineDash([]);
-  tag(8, cy, `PAID ${usd(p.cost)}`, C.amber);
-  const hy = y(head);
-  ctx.fillStyle = col; ctx.beginPath(); ctx.arc(right, hy, 6, 0, 7); ctx.fill();
-  const pulse = (performance.now() % 1200) / 1200;
-  ctx.strokeStyle = col; ctx.globalAlpha = 1 - pulse; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(right, hy, 6 + pulse * 18, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(x0, cy); ctx.lineTo(right, cy); ctx.stroke(); ctx.setLineDash([]);
+  tag(x0 + 4, cy, `PAID ${usd(p.cost)}`, C.amber);
+  const col = m.pnl >= 0 ? C.up : C.down, hy = y(pts[pts.length - 1][1]);
+  ctx.fillStyle = col; ctx.beginPath(); ctx.arc(right, hy, framed ? 4 : 6, 0, 7); ctx.fill();
+  if (!framed) {
+    const pulse = (performance.now() % 1200) / 1200;
+    ctx.strokeStyle = col; ctx.globalAlpha = 1 - pulse; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(right, hy, 6 + pulse * 18, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  }
   tag(right + 4, hy, usd(m.value), col);
 }
 
@@ -615,7 +615,7 @@ function drawCandles(w, h) {
   if (p && p.day === d.id) {
     const ey = Math.round(y(p.spy)) + 0.5;
     ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(x0, ey); ctx.lineTo(right, ey); ctx.stroke(); ctx.setLineDash([]);
-    tag(x0 + 4, ey, `IN ${p.spy.toFixed(2)}`, C.amber);
+    tag(x0 + 4, ey, `SPY IN ${p.spy.toFixed(2)}`, C.amber); // where SPY was, not break-even (fees, spread)
   }
   tag(right + 4, ly, px.toFixed(2), last.c >= last.o ? C.up : C.down);
 
