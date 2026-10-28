@@ -1,6 +1,66 @@
 {
  "days": [
   {
+   "id": "2026-10-28",
+   "date": "2026-10-28",
+   "und": "SPY",
+   "file": "2026-10-28.json",
+   "synthetic": false,
+   "open": 771.42,
+   "close": 772.3,
+   "high": 773.36,
+   "low": 769.25,
+   "note": ""
+  },
+  {
+   "id": "2026-10-27",
+   "date": "2026-10-27",
+   "und": "SPY",
+   "file": "2026-10-27.json",
+   "synthetic": false,
+   "open": 767.33,
+   "close": 769.79,
+   "high": 771.14,
+   "low": 765.21,
+   "note": ""
+  },
+  {
+   "id": "2026-10-26",
+   "date": "2026-10-26",
+   "und": "SPY",
+   "file": "2026-10-26.json",
+   "synthetic": false,
+   "open": 762.21,
+   "close": 765.25,
+   "high": 767.71,
+   "low": 761.71,
+   "note": ""
+  },
+  {
+   "id": "2026-10-23",
+   "date": "2026-10-23",
+   "und": "SPY",
+   "file": "2026-10-23.json",
+   "synthetic": false,
+   "open": 759.91,
+   "close": 759.79,
+   "high": 763.47,
+   "low": 758.68,
+   "note": ""
+  },
+  {
+   "id": "2026-10-21",
+   "date": "2026-10-21",
+   "und": "SPY",
+   "file": "2026-10-21.json",
+   "synthetic": false,
+   "open": 771.2,
+   "close": 773.15,
+   "high": 774.43,
+   "low": 768.4,
+   "note": ""
+  },
+  {
    "id": "sample-1",
    "date": "2026-10-27",
    "und": "SPY",
