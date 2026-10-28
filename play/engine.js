@@ -108,8 +108,8 @@ export function chain(day, i, each = 5) {
 
 // The SPY level where cashing out would pay back exactly what was paid (fees included), at second i:
 //   call: SPY - pnl / (100 x qty x delta)     put: SPY + pnl / (100 x qty x delta)
-// with delta read off the neighbouring strikes' mids (dC/dS ~ -dC/dK). By construction SPY is above it (call) or below
-// it (put) exactly when the P&L shown is positive, so the chart and the number can't disagree.
+// with delta read off the neighbouring strikes' mids (dC/dS ~ -dC/dK). Taken once at entry it is the "entry + fees"
+// line: how far SPY has to move to pay back the spread and both fees.
 export function breakeven(day, i, pos, pnl) {
   const mid = (k) => {
     const o = day.opts.get(key(pos.r, k));
@@ -166,6 +166,7 @@ export class Account {
     const cost = r2(q.ask * 100 * qty + FEE * qty);
     this.cash = r2(this.cash - cost);
     this.pos = { day: day.id, side, r: opt.r, k: opt.k, qty, i, ask: q.ask, cost, spy: price(day, i) };
+    this.pos.level = r2(breakeven(day, i, this.pos, this.mark(day, i).pnl)); // entry + fees: fixed for the trade
     return { ok: true, msg: `Bought ${qty} ${opt.k}${opt.r} @ ${q.ask.toFixed(2)}` };
   }
 

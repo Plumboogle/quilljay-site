@@ -156,3 +156,22 @@ test("break-even: SPY is past it exactly when the P&L is positive", () => {
     assert.equal(price(d, 60) < breakeven(d, 60, { ...a.pos, r: "P" }, pnl), pnl > 0);
   }
 });
+
+test("entry + fees line: a little above entry for a long, below for a short, fixed", () => {
+  const d = day(), a = new Account(1000);
+  a.open(d, 50, "long", d.opts.get("C580"), 1);
+  // at entry: cost 122.68, cash out 120 - 0.68 = 119.32, so -3.36 to make up at delta 0.40: SPY +0.084
+  assert.equal(a.pos.level, 580.08);
+  a.close(d, 60);
+  a.open(d, 61, "short", d.opts.get("P580"), 1);
+  assert.ok(a.pos.level < a.pos.spy);
+});
+
+test("page, script and engine carry the same version (phones cache files ~10 min)", async () => {
+  const fs = await import("node:fs");
+  const read = (f) => fs.readFileSync(new URL(`../play/${f}`, import.meta.url), "utf8");
+  const html = read("index.html"), app = read("app.js");
+  const v = html.match(/app\.js\?v=(\w+)/)[1];
+  assert.equal(html.match(/play\.css\?v=(\w+)/)[1], v);
+  assert.equal(app.match(/engine\.js\?v=(\w+)/)[1], v);
+});
