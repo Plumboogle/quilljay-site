@@ -7,7 +7,9 @@
 - Fills: buy at the quoted ask, sell at the quoted bid, $0.68 a contract each way (Schwab's $0.65 + ~$0.03 regulatory,
   as the zdte-bot backtester). Every number shown already includes both sides' fees: CASH OUT pays what it says. No new trades from 15:50; an open
   trade is sold at 15:50 (the zdte-bot's flatten). A contract with no quote is valued at intrinsic, marked "est.".
-- Views: **Arcade** (a line and the buttons; in a trade the line is what CASH OUT pays, the dashed line what you paid), **Line** (axes, zoom, trade marks), **Pro** (candles, the chain, the held
+- Views: **Arcade** (a line and the buttons; in a trade the SPY line is green while cashing out would pay more than
+  you put in and red otherwise, against a dashed BREAK-EVEN that always agrees with the P&L shown; see
+  `breakeven()` in engine.js), **Line** (axes, zoom, trade marks), **Pro** (candles, the chain, the held
   contract's bid). Speeds 1x to 60x; recorder gaps are skipped.
 - Cash ($1,000 to start), the trade log and settings stay in the browser (localStorage). Nothing is sent anywhere.
 

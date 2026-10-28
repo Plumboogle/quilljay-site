@@ -159,10 +159,12 @@ body.pos-in .hud:not(.corner) { background: radial-gradient(ellipse 34% 30% at 5
 .size, .strike { display: flex; align-items: center; gap: 6px; }
 #qty { width: 56px; text-align: center; background: var(--bg); border: 1px solid var(--line2); min-height: 32px; font-weight: 800; }
 .actions { flex: 1; display: flex; gap: 10px; min-width: 280px; }
-.trade { flex: 1; border: 0; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+.trade { flex: 1; min-width: 0; border: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; text-transform: uppercase; letter-spacing: .1em; transition: transform .08s, box-shadow .15s, opacity .15s; }
 .trade b { font-family: var(--display); font-weight: 400; font-size: 28px; letter-spacing: .06em; line-height: 1; }
-.trade span { font-size: 11px; font-variant-numeric: tabular-nums; opacity: .85; }
+.trade span { font-size: 11px; line-height: 1.25; font-variant-numeric: tabular-nums; opacity: .85; max-width: 100%;
+  padding: 0 6px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* fixed heights above: the bar doesn't move when LONG/SHORT swap for CASH OUT */
 .trade:active { transform: scale(.98); }
 .trade:disabled { opacity: .35; cursor: not-allowed; }
 .trade.long { background: var(--up); color: var(--bg); }
@@ -172,10 +174,16 @@ body.pos-in .hud:not(.corner) { background: radial-gradient(ellipse 34% 30% at 5
 .trade.short:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(255,77,94,.35); }
 .trade.exit:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(245,184,65,.4); }
 .trade[hidden] { display: none; }
-body.view-arcade .trade { min-height: 84px; }
+body.view-arcade .trade { height: 84px; }
 body.view-arcade .trade b { font-size: 36px; }
 .fine { margin: 0; padding: 8px 16px 14px; color: var(--muted); font-size: 11px; line-height: 1.6; letter-spacing: .03em; background: var(--panel); }
 
+/* Desktop: the page is exactly the window; the side column scrolls inside it, so its panels growing (an open trade)
+   never resizes the chart or moves the buttons */
+@media (min-width: 901px) {
+  body { height: 100vh; height: 100dvh; }
+  .main { min-height: 0; }
+}
 @media (max-width: 900px) {
   body.view-line .main, body.view-pro .main { grid-template-columns: 1fr; }
   .side { border-left: 0; border-top: 1px solid var(--line); }
@@ -189,7 +197,7 @@ body.view-arcade .trade b { font-size: 36px; }
   .controls { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); position: sticky; bottom: 0; z-index: 5; }
   .actions { min-width: 100%; }
   .trade b { font-size: 24px; }
-  body.view-arcade .trade { min-height: 72px; }
+  body.view-arcade .trade { height: 72px; }
   body.view-arcade .trade b { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) { .trade, .toast { transition: none; } body { animation: none; } }

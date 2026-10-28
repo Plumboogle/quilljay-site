@@ -1,7 +1,7 @@
 // node --test tools/
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Account, FLATTEN_S, chain, clock, decodeDay, pick, quote, unpack } from "../play/engine.js";
+import { Account, FLATTEN_S, breakeven, chain, clock, decodeDay, pick, price, quote, unpack } from "../play/engine.js";
 
 const N = 23400;
 const run = (v, len) => `${v},~${len - 1}`; // a value held for len seconds
@@ -141,4 +141,18 @@ test("the cash-out value shown is exactly what closing pays, fees included", () 
   assert.equal(t.pnl, shown.pnl);
   assert.equal(Math.round((a.cash - before) * 100) / 100, shown.value);
   assert.equal(Math.round((a.cash - 1000) * 100) / 100, shown.pnl);
+});
+
+test("break-even: SPY is past it exactly when the P&L is positive", () => {
+  const d = day(), a = new Account(1000);
+  a.open(d, 50, "long", d.opts.get("C580"), 1);
+  // delta from C580 (1.21 mid) and C581 (0.81 mid): 0.40; P&L at 60: 120 - 0.68 - 122.68 = -3.36
+  const m = a.mark(d, 60);
+  const be = breakeven(d, 60, a.pos, m.pnl);
+  assert.equal(Math.round(be * 100) / 100, Math.round((580 - m.pnl / 40) * 100) / 100);
+  assert.ok(m.pnl < 0 && price(d, 60) < be); // losing: SPY below break-even
+  for (const pnl of [-50, -0.01, 0.01, 50]) { // the sign rule holds for any P&L, calls and puts
+    assert.equal(price(d, 60) > breakeven(d, 60, a.pos, pnl), pnl > 0);
+    assert.equal(price(d, 60) < breakeven(d, 60, { ...a.pos, r: "P" }, pnl), pnl > 0);
+  }
 });

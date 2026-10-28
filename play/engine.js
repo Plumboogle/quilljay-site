@@ -106,6 +106,27 @@ export function chain(day, i, each = 5) {
   });
 }
 
+// The SPY level where cashing out would pay back exactly what was paid (fees included), at second i:
+//   call: SPY - pnl / (100 x qty x delta)     put: SPY + pnl / (100 x qty x delta)
+// with delta read off the neighbouring strikes' mids (dC/dS ~ -dC/dK). By construction SPY is above it (call) or below
+// it (put) exactly when the P&L shown is positive, so the chart and the number can't disagree.
+export function breakeven(day, i, pos, pnl) {
+  const mid = (k) => {
+    const o = day.opts.get(key(pos.r, k));
+    return o && o.ok[i] ? (o.bid[i - o.i0] + o.ask[i - o.i0]) / 200 : null;
+  };
+  const j = day.strikes.indexOf(pos.k);
+  const pts = [day.strikes[j - 1], pos.k, day.strikes[j + 1]].filter((k) => k != null && mid(k) != null);
+  let delta = 0.5;
+  if (pts.length >= 2) {
+    const lo = pts[0], hi = pts[pts.length - 1];
+    delta = Math.abs(mid(lo) - mid(hi)) / (hi - lo);
+  }
+  delta = Math.min(1, Math.max(0.05, delta));
+  const move = pnl / (100 * pos.qty * delta);
+  return price(day, i) + (pos.r === "C" ? -move : move);
+}
+
 const r2 = (x) => Math.round(x * 100) / 100;
 const fees = (bid, qty) => (bid > 0 ? FEE * qty : 0); // nothing to sell at a zero bid: it expires, no commission
 
