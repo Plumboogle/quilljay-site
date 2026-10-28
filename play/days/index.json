@@ -1,0 +1,16 @@
+{
+ "days": [
+  {
+   "id": "sample-1",
+   "date": "2026-10-27",
+   "und": "SPY",
+   "file": "sample-1.json",
+   "synthetic": true,
+   "open": 578.45,
+   "close": 581.13,
+   "high": 581.49,
+   "low": 576.57,
+   "note": "Synthetic practice day: made-up prices, not market data"
+  }
+ ]
+}

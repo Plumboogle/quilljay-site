@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QUILLJAY PLAY</title>
+<meta name="description" content="Long or short SPY 0DTE options on replayed market quotes. Practice money.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="play.css">
+</head>
+<body class="view-arcade">
+<header class="bar">
+  <a class="logo" href="/">QUILL<span>JAY</span></a>
+  <span class="tag">PLAY</span>
+  <label class="field"><span class="sr">Day</span><select id="day" aria-label="Day"></select></label>
+  <div class="transport">
+    <button id="playBtn" class="icon" aria-label="Play">&#9654;</button>
+    <div class="chips" id="speeds" role="group" aria-label="Speed"></div>
+  </div>
+  <div class="clock"><b id="time">09:30:00</b><span>NY</span></div>
+  <div class="spy"><span>SPY</span><b id="spy">&mdash;</b><span id="chg"></span></div>
+  <div class="chips views" id="views" role="tablist" aria-label="View">
+    <button data-view="arcade" role="tab">Arcade</button>
+    <button data-view="line" role="tab">Line</button>
+    <button data-view="pro" role="tab">Pro</button>
+  </div>
+  <div class="cash"><span>Cash</span><b id="cash">$1,000.00</b></div>
+</header>
+<div id="banner" class="banner" hidden></div>
+
+<main class="main">
+  <section class="stage" id="stage">
+    <canvas id="chart" aria-label="Price chart"></canvas>
+    <div class="chartbar" id="chartbar"></div>
+    <div class="hud" id="hud" aria-live="off"></div>
+    <div class="overlay" id="overlay"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </section>
+
+  <aside class="side" id="side">
+    <div class="panel" id="posPanel"></div>
+    <div class="panel pro-only">
+      <h2>0DTE chain <small>click an ask to buy</small></h2>
+      <table class="chain" id="chain"></table>
+    </div>
+    <div class="panel">
+      <h2>Trades <small id="stats"></small></h2>
+      <ol class="log" id="log"></ol>
+      <button class="link" id="resetBtn">Reset to $1,000</button>
+    </div>
+  </aside>
+</main>
+
+<footer class="controls">
+  <div class="sizing">
+    <div class="size" role="group" aria-label="Contracts">
+      <span class="lbl">Size</span>
+      <button class="icon" id="qtyDown" aria-label="Fewer contracts">&minus;</button>
+      <input id="qty" inputmode="numeric" value="1" aria-label="Contracts">
+      <button class="icon" id="qtyUp" aria-label="More contracts">+</button>
+      <div class="chips" id="qtyChips"></div>
+    </div>
+    <label class="strike"><span class="lbl">Strike</span>
+      <select id="otm">
+        <option value="-1">1 ITM</option>
+        <option value="0" selected>ATM</option>
+        <option value="1">1 OTM</option>
+        <option value="2">2 OTM</option>
+        <option value="3">3 OTM</option>
+      </select>
+    </label>
+  </div>
+  <div class="actions">
+    <button class="trade long" id="longBtn"><b>Long &#9650;</b><span id="longSub"></span></button>
+    <button class="trade short" id="shortBtn"><b>Short &#9660;</b><span id="shortSub"></span></button>
+    <button class="trade exit" id="exitBtn" hidden><b>Cash out</b><span id="exitSub"></span></button>
+  </div>
+</footer>
+<p class="fine">Practice money on replayed quotes. Long buys a 0DTE call, short buys a put; fills at the quoted ask/bid,
+  $0.65 a contract each way, sold at 15:50. Keys: &uarr; long &middot; &darr; short &middot; space cash out / pause &middot; 1 2 3 views.
+  Not financial advice.</p>
+<script type="module" src="app.js"></script>
+</body>
+</html>
