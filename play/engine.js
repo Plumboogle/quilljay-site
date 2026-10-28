@@ -2,14 +2,17 @@
 // No DOM here, so tools/test_engine.mjs can test it with node.
 //
 // Rules (match the zdte-bot where it has one):
-//   LONG buys a 0DTE call, SHORT buys a 0DTE put. Buy at the ask, sell at the bid, $0.65 a contract each way.
+//   LONG buys a 0DTE call, SHORT buys a 0DTE put. Buy at the ask, sell at the bid, $0.68 a contract each way.
+//   Every value shown (cost, cash-out, P&L) already has both sides' fees in it.
 //   One position at a time. No entries from 15:50; an open position is sold at the bid at 15:50 (the bot's flatten).
-//   A held contract with no quote (recorder gap, strike left the band) is valued at intrinsic, marked "est.".
+//   A held contract with no quote keeps its last quote for up to CARRY_S (the feed drops a second now and then),
+//   then is valued at intrinsic (recorder gap, strike left the band); either way marked "est.".
 
 export const DAY_S = 23400; // 09:30-16:00
 export const FLATTEN_S = DAY_S - 600; // 15:50
-export const FEE = 0.65; // per contract, per side (Schwab)
+export const FEE = 0.68; // per contract, per side: Schwab's $0.65 + ~$0.03 regulatory (as the zdte-bot backtester)
 export const START_CASH = 1000;
+export const CARRY_S = 30;
 
 export function unpack(s, len) {
   const out = new Int32Array(len);
@@ -64,9 +67,13 @@ export function clock(i, secs = true) {
 export const price = (day, i) => day.spy[Math.min(Math.max(0, i), day.n - 1)] / 100;
 export const live = (day, i) => i >= 0 && i < day.n && day.spyOk[i] === 1;
 
-// The contract's quote at second i, in dollars. ok=false: no recorded quote; bid/ask are then intrinsic (est.).
+// The contract's quote at second i, in dollars. ok=false: no quote this second; bid/ask are then the last quote
+// within CARRY_S, else intrinsic (est.).
 export function quote(day, opt, i) {
   if (opt.ok[i]) return { bid: opt.bid[i - opt.i0] / 100, ask: opt.ask[i - opt.i0] / 100, ok: true };
+  for (let j = i - 1; j >= Math.max(opt.i0, i - CARRY_S); j--) {
+    if (opt.ok[j]) return { bid: opt.bid[j - opt.i0] / 100, ask: opt.ask[j - opt.i0] / 100, ok: false };
+  }
   const s = price(day, i);
   const v = Math.max(0, Math.round((opt.r === "C" ? s - opt.k : opt.k - s) * 100) / 100);
   return { bid: v, ask: v, ok: false };

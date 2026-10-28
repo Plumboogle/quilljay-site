@@ -47,23 +47,23 @@ test("buy at ask, sell at bid, commission each way", () => {
   const r = a.open(d, 50, "long", pick(d, 50, "long"), 2);
   assert.ok(r.ok, r.msg);
   assert.equal(a.pos.ask, 1.22);
-  assert.equal(a.pos.cost, 245.3); // 2 x 122 + 1.30
-  assert.equal(a.cash, 754.7);
+  assert.equal(a.pos.cost, 245.36); // 2 x 122 + 2 x 0.68
+  assert.equal(a.cash, 754.64);
   const m = a.mark(d, 60);
-  assert.equal(m.value, 238.7); // 2 x 120 - 1.30
-  assert.equal(m.pnl, -6.6);
+  assert.equal(m.value, 238.64); // 2 x 120 - 1.36: what cash out pays
+  assert.equal(m.pnl, -6.72);
   assert.ok(!a.open(d, 61, "short", pick(d, 61, "short"), 1).ok); // one at a time
   const c = a.close(d, 100); // bid fell to 1.00
-  assert.equal(c.trade.pnl, -46.6); // 2 x 100 - 1.30 - 245.30
-  assert.equal(a.cash, 953.4);
+  assert.equal(c.trade.pnl, -46.72); // 2 x 100 - 1.36 - 245.36
+  assert.equal(a.cash, 953.28);
   assert.equal(a.pos, null);
-  assert.deepEqual(a.stats("t"), { n: 1, wins: 0, pnl: -46.6, best: -46.6, worst: -46.6 });
+  assert.deepEqual(a.stats("t"), { n: 1, wins: 0, pnl: -46.72, best: -46.72, worst: -46.72 });
 });
 
 test("size is capped by cash", () => {
   const d = day(), a = new Account(300);
   a.open(d, 50, "long", pick(d, 50, "long"), 99);
-  assert.equal(a.pos.qty, 2); // 122.65 each
+  assert.equal(a.pos.qty, 2); // 122.68 each
   const b = new Account(100);
   const r = b.open(d, 50, "long", pick(d, 50, "long"), 1);
   assert.ok(!r.ok);
@@ -81,10 +81,11 @@ test("no entries in a data gap or after 15:50; flatten at 15:50", () => {
   assert.equal(a.pos, null);
 });
 
-test("held contract without a quote is valued at intrinsic (est.)", () => {
+test("held contract without a quote: last quote for 30 s, then intrinsic (est.)", () => {
   const d = day(), a = new Account(1000);
   a.open(d, 150, "long", d.opts.get("C581"), 1);
-  const m = a.mark(d, 250); // C581 in a gap, SPY 581.40
+  assert.deepEqual(quote(d, d.opts.get("C581"), 229), { bid: 0.8, ask: 0.82, ok: false }); // gap from 200: carried
+  const m = a.mark(d, 250); // C581 in the gap for 51 s, SPY 581.40
   assert.ok(m.est);
   assert.equal(m.bid, 0.4);
   assert.deepEqual(quote(d, d.opts.get("C581"), 250), { bid: 0.4, ask: 0.4, ok: false });
@@ -98,9 +99,9 @@ test("zero bid sells for nothing, no commission", () => {
   });
   const a = new Account(1000);
   a.open(d, 1, "long", d.opts.get("C585"), 1);
-  assert.equal(a.pos.cost, 2.65);
+  assert.equal(a.pos.cost, 2.68);
   assert.equal(a.close(d, 20).trade.value, 0);
-  assert.equal(a.cash, 997.35);
+  assert.equal(a.cash, 997.32);
 });
 
 test("chain is sorted high to low around the money", () => {
@@ -126,4 +127,18 @@ test("sample day decodes", async () => {
   assert.equal(d.synthetic, true);
   assert.ok(pick(d, 60, "long") && pick(d, 60, "short"));
   assert.ok(!d.spyOk[11_450]); // the sample's recorder outage
+});
+
+test("the cash-out value shown is exactly what closing pays, fees included", () => {
+  const d = day(), a = new Account(1000);
+  a.open(d, 50, "long", pick(d, 50, "long"), 3);
+  assert.equal(a.pos.cost, 368.04); // 3 x 122 + 3 x 0.68: the fee is part of what you paid
+  const shown = a.mark(d, 120), before = a.cash;
+  assert.equal(shown.value, 297.96); // 3 x 100 - 3 x 0.68
+  assert.equal(shown.pnl, -70.08);
+  const t = a.close(d, 120).trade;
+  assert.equal(t.value, shown.value);
+  assert.equal(t.pnl, shown.pnl);
+  assert.equal(Math.round((a.cash - before) * 100) / 100, shown.value);
+  assert.equal(Math.round((a.cash - 1000) * 100) / 100, shown.pnl);
 });

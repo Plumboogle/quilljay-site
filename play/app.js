@@ -1,7 +1,7 @@
 // QuillJay Play: the page. Replays a recorded day second by second and trades it with practice money.
 // Market rules live in engine.js. A live mode later swaps the replay clock and the Account for the zdte app's
 // quote stream and broker (see README.md); the views and buttons stay as they are.
-import { Account, DAY_S, FLATTEN_S, START_CASH, chain, clock, decodeDay, key, live, pick, price, quote } from "./engine.js";
+import { Account, DAY_S, FEE, FLATTEN_S, START_CASH, chain, clock, decodeDay, key, live, pick, price, quote } from "./engine.js";
 
 const $ = (id) => document.getElementById(id);
 const STORE = "qj-play-v1";
@@ -10,6 +10,9 @@ const ZOOMS = [["5m", 300], ["15m", 900], ["1h", 3600], ["Day", DAY_S]];
 const BARS = [["5s", 5], ["15s", 15], ["1m", 60], ["5m", 300]];
 const ARCADE_WIN = { 1: 90, 2: 150, 5: 300, 10: 600, 30: 1500, 60: 3000 }; // seconds of line on screen
 const QTY_CHIPS = [1, 5, 10, "max"];
+// Drawn icons: iPhones render the ▶ character as an emoji
+const ICON_PLAY = `<svg class="ico" viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 10 6 0 12z" fill="currentColor"/></svg>`;
+const ICON_PAUSE = `<svg class="ico" viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0h3.5v12H0zM6.5 0H10v12H6.5z" fill="currentColor"/></svg>`;
 
 const S = {
   index: [], day: null, pos: 0, playing: false, speed: 1, view: "arcade", qty: 1, otm: 0, zoom: 900, bar: 60,
@@ -107,7 +110,7 @@ function startOverlay() {
     <p>${S.day.synthetic ? "Sample day" : S.day.date} · SPY 0DTE · ${clock(S.pos, false)} NY<br>
       ${bust ? "Out of practice money." : `Cash ${usd(S.acct.cash)}`}</p>
     <div class="row">${bust ? `<button class="go" data-act="reset">Reset to $1,000</button>`
-      : `<button class="go" data-act="start">${resumed ? "Resume" : "Start"} &#9654;</button>`}
+      : `<button class="go" data-act="start">${resumed ? "Resume" : "Start"} ${ICON_PLAY}</button>`}
       ${resumed ? `<button class="alt" data-act="restart">From 09:30</button>` : ""}</div>
     <p>&uarr; long &middot; &darr; short &middot; space cash out</p></div>`);
 }
@@ -141,7 +144,7 @@ function play(on) {
   if (!S.day) return;
   if (on && S.ended) return;
   S.playing = on;
-  $("playBtn").innerHTML = on ? "&#10074;&#10074;" : "&#9654;";
+  $("playBtn").innerHTML = on ? ICON_PAUSE : ICON_PLAY;
   $("playBtn").setAttribute("aria-label", on ? "Pause" : "Play");
   if (on) hideOverlay(); else if (!S.ended) startOverlay();
   save();
@@ -279,9 +282,12 @@ function frame(now) {
     }
     const r = S.acct.step(S.day, idx());
     if (r) toast(`15:50 flatten: ${r.msg}`);
-    if (S.ended && $("overlay").hidden) { $("playBtn").innerHTML = "&#9654;"; endOverlay(); save(); }
+    if (S.ended && $("overlay").hidden) { $("playBtn").innerHTML = ICON_PLAY; endOverlay(); save(); }
     const target = price(S.day, idx());
-    S.disp = S.disp == null || !S.playing ? target : S.disp + (target - S.disp) * (1 - Math.exp(-dt * 14));
+    const ease = (cur, to) => (cur == null || !S.playing ? to : cur + (to - cur) * (1 - Math.exp(-dt * 14)));
+    S.disp = ease(S.disp, target);
+    const m = S.acct.pos ? S.acct.mark(S.day, idx()) : null;
+    S.dispV = m ? ease(S.dispV, m.value) : null; // the cash-out value line's head
     render();
     if (now - lastSave > 2000) { save(); lastSave = now; }
   }
@@ -317,7 +323,7 @@ function render() {
       const c = currentPick(side), btn = $(`${side}Btn`);
       btn.disabled = !c || cutoff || gap || S.ended;
       const n = S.qty === "max" ? S.acct.maxQty(c?.ask ?? 0) : S.qty;
-      setText($(`${side}Sub`), cutoff ? "closed after 15:50" : !c || gap ? "no quote" : `${n}× ${cname(c.opt)} @ ${c.ask.toFixed(2)} · ${usd(n * (c.ask * 100 + 0.65))}`);
+      setText($(`${side}Sub`), cutoff ? "closed after 15:50" : !c || gap ? "no quote" : `${n}× ${cname(c.opt)} @ ${c.ask.toFixed(2)} · ${usd(n * (c.ask * 100 + FEE))}`);
     }
   }
   renderHud(p, m, px);
@@ -460,6 +466,7 @@ function tag(x, y, text, bg, fg = "#05080A") {
 
 function drawLine(w, h, arcade) {
   const d = S.day, p = S.acct.pos, m = S.acct.mark(d, idx());
+  if (arcade && p && p.day === d.id) return drawPayout(w, h, p, m);
   const b = S.pos, span = arcade ? Math.min(ARCADE_WIN[S.speed] || 300, Math.max(60, b)) : Math.min(S.zoom, DAY_S);
   const a = arcade ? b - span : Math.max(0, Math.min(b - span, DAY_S - span));
   const right = arcade ? w - 70 : w - 64, x0 = arcade ? 0 : 8, top = arcade ? 30 : 48, bot = h - (arcade ? 30 : 28);
@@ -528,6 +535,42 @@ function drawLine(w, h, arcade) {
   tag(right + 4, hy, S.disp.toFixed(2), col);
 }
 
+// Arcade while in a trade: what CASH OUT pays (bid x 100 x qty, minus the exit fee) since entry, against what you
+// paid (ask x 100 x qty plus the entry fee). Above the dashed line you're up, below it you're down; no fees come after.
+function drawPayout(w, h, p, m) {
+  const d = S.day, b = S.pos, right = w - 84, top = 40, bot = h - 34;
+  const span = Math.min(ARCADE_WIN[S.speed] || 300, Math.max(20, b - p.i)), a = Math.max(p.i, b - span);
+  const X = (t) => ((t - (b - span)) / span) * right;
+  const per = Math.max(1, span / right), pts = [];
+  for (let t = a; t < Math.floor(b); t += per) { const v = S.acct.mark(d, Math.floor(t)).value; pts.push([X(Math.floor(t)), v]); }
+  pts.push([right, S.dispV ?? m.value]);
+  const vs = pts.map((q) => q[1]);
+  const y = yScale(Math.min(p.cost, ...vs), Math.max(p.cost, ...vs), top, bot, Math.max(1, p.cost * 0.04));
+  ctx.strokeStyle = C.grid;
+  for (let gy = top; gy < bot; gy += 64) { ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(w, gy + 0.5); ctx.stroke(); }
+  const head = pts[pts.length - 1][1], col = head >= p.cost ? C.up : C.down, cy = Math.round(y(p.cost)) + 0.5;
+  // fill between the line and what you paid
+  ctx.beginPath();
+  pts.forEach(([x, v], j) => (j ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v))));
+  ctx.lineTo(right, cy); ctx.lineTo(pts[0][0], cy); ctx.closePath();
+  ctx.fillStyle = col + "26"; ctx.fill();
+  ctx.save();
+  ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineJoin = "round";
+  ctx.beginPath();
+  pts.forEach(([x, v], j) => (j ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v))));
+  ctx.stroke();
+  ctx.restore();
+  ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(right, cy); ctx.stroke(); ctx.setLineDash([]);
+  tag(8, cy, `PAID ${usd(p.cost)}`, C.amber);
+  const hy = y(head);
+  ctx.fillStyle = col; ctx.beginPath(); ctx.arc(right, hy, 6, 0, 7); ctx.fill();
+  const pulse = (performance.now() % 1200) / 1200;
+  ctx.strokeStyle = col; ctx.globalAlpha = 1 - pulse; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(right, hy, 6 + pulse * 18, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  tag(right + 4, hy, usd(m.value), col);
+}
+
 function drawCandles(w, h) {
   const d = S.day, B = S.bar, i = idx(), p = S.acct.pos;
   const right = w - 64, x0 = 8, top = 48;
@@ -593,27 +636,27 @@ function drawCandles(w, h) {
   if (pane) drawPremium(x0, right, h - 28 - pane, h - 28, p);
 }
 
-// Lower pane in Pro: the held contract's bid since entry
+// Lower pane in Pro: what CASH OUT pays since entry (fees included), against what you paid
 function drawPremium(x0, x1, top, bot, p) {
-  const d = S.day, opt = d.opts.get(key(p.r, p.k)), i = idx();
+  const d = S.day, i = idx();
   ctx.strokeStyle = C.line; ctx.beginPath(); ctx.moveTo(x0, top - 8.5); ctx.lineTo(x1 + 64, top - 8.5); ctx.stroke();
   const a = p.i, b = Math.max(i, p.i + 1), W = x1 - x0;
   const vals = [];
   const step = Math.max(1, Math.floor((b - a) / W));
-  for (let t = a; t <= i; t += step) vals.push([t, quote(d, opt, t).bid]);
-  vals.push([i, quote(d, opt, i).bid]);
-  const lo = Math.min(p.ask, ...vals.map((v) => v[1])), hi = Math.max(p.ask, ...vals.map((v) => v[1]));
-  const y = yScale(lo, hi, top, bot, 0.05);
+  for (let t = a; t <= i; t += step) vals.push([t, S.acct.mark(d, t).value]);
+  vals.push([i, S.acct.mark(d, i).value]);
+  const lo = Math.min(p.cost, ...vals.map((v) => v[1])), hi = Math.max(p.cost, ...vals.map((v) => v[1]));
+  const y = yScale(lo, hi, top, bot, Math.max(1, p.cost * 0.04));
   const X = (t) => x0 + ((t - a) / (b - a)) * W;
-  const ey = Math.round(y(p.ask)) + 0.5;
+  const ey = Math.round(y(p.cost)) + 0.5;
   ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(x0, ey); ctx.lineTo(x1, ey); ctx.stroke(); ctx.setLineDash([]);
-  const cur = vals[vals.length - 1][1], col = cur >= p.ask ? C.up : C.down;
+  const cur = vals[vals.length - 1][1], col = cur >= p.cost ? C.up : C.down;
   ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath();
   vals.forEach(([t, v], j) => (j ? ctx.lineTo(X(t), y(v)) : ctx.moveTo(X(t), y(v))));
   ctx.stroke(); ctx.lineWidth = 1;
   ctx.font = "11px 'JetBrains Mono', monospace"; ctx.fillStyle = C.muted; ctx.textAlign = "left"; ctx.textBaseline = "top";
-  ctx.fillText(`${p.k}${p.r} bid · paid ${p.ask.toFixed(2)}`, x0, top);
-  tag(x1 + 4, y(cur), cur.toFixed(2), col);
+  ctx.fillText(`Cash out ${p.qty}x ${p.k}${p.r} · paid ${usd(p.cost)} incl. fees`, x0, top);
+  tag(x1 + 4, y(cur), usd(cur), col);
 }
 
 init();

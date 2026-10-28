@@ -33,6 +33,7 @@ body {
 }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
+.ico { width: .62em; height: .74em; vertical-align: -.04em; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font-size: 11px; }
 

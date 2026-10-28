@@ -162,6 +162,7 @@
     animation: pulse 2.4s ease-in-out infinite; transition: transform .15s;
   }
   .launch b { font-family: 'Anton', 'Impact', sans-serif; font-weight: 400; font-size: clamp(26px, 5vw, 38px); letter-spacing: .04em; line-height: 1; }
+  .launch .tri { width: .55em; height: .66em; margin-left: .15em; vertical-align: .02em; } /* drawn: iPhones turn the ▶ character into an emoji */
   .launch small { font-size: 12px; font-weight: 800; letter-spacing: .14em; opacity: .75; }
   .launch:hover, .launch:focus-visible { transform: translateY(-2px); outline: none; }
   .launch:focus-visible { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--up); }
@@ -178,6 +179,15 @@
     padding: 14px 20px; font-size: 12px; color: var(--muted); letter-spacing: 0.1em;
     border-top: 1px solid var(--line);
     position: relative; z-index: 2; background: var(--bg);
+  }
+  /* Phones: just the name, the $1K to $1M line and the button */
+  @media (max-width: 600px) {
+    .status, .row, .tape.rev { display: none; }
+    canvas#chart { opacity: .4; }
+    .stage { padding: 32px 20px; }
+    .content { gap: 18px; }
+    .launch { align-self: stretch; align-items: center; text-align: center; margin-top: 18px; padding: 18px 20px 16px; }
+    footer { justify-content: center; text-align: center; font-size: 11px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .tape .track, .status::before, .launch { animation: none; }
@@ -204,7 +214,7 @@
         <span>Status <b>Coming soon</b></span>
         <span>Exchange <b>quilljay.com</b></span>
       </div>
-      <a class="launch" id="launch" href="/play/"><b>Play the market &#9654;</b><small>SPY 0DTE &middot; practice money</small></a>
+      <a class="launch" id="launch" href="/play/"><b>Play the market <svg class="tri" viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 10 6 0 12z" fill="currentColor"/></svg></b><small>SPY 0DTE &middot; practice money</small></a>
     </div>
   </section>
   <div class="warp" id="warp" aria-hidden="true"></div>

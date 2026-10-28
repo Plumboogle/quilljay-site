@@ -16,7 +16,7 @@
   <span class="tag">PLAY</span>
   <label class="field"><span class="sr">Day</span><select id="day" aria-label="Day"></select></label>
   <div class="transport">
-    <button id="playBtn" class="icon" aria-label="Play">&#9654;</button>
+    <button id="playBtn" class="icon" aria-label="Play"><svg class="ico" viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 10 6 0 12z" fill="currentColor"/></svg></button>
     <div class="chips" id="speeds" role="group" aria-label="Speed"></div>
   </div>
   <div class="clock"><b id="time">09:30:00</b><span>NY</span></div>
@@ -78,8 +78,9 @@
     <button class="trade exit" id="exitBtn" hidden><b>Cash out</b><span id="exitSub"></span></button>
   </div>
 </footer>
-<p class="fine">Practice money on replayed quotes. Long buys a 0DTE call, short buys a put; fills at the quoted ask/bid,
-  $0.65 a contract each way, sold at 15:50. Keys: &uarr; long &middot; &darr; short &middot; space cash out / pause &middot; 1 2 3 views.
+<p class="fine">Practice money on replayed quotes. Long buys a 0DTE call, short buys a put; fills at the quoted ask/bid.
+  Fees ($0.68 a contract each way: Schwab's $0.65 + regulatory) are already in every number shown: cash out pays exactly
+  what it says. Open trades are sold at 15:50. Keys: &uarr; long &middot; &darr; short &middot; space cash out / pause &middot; 1 2 3 views.
   Not financial advice.</p>
 <script type="module" src="app.js"></script>
 </body>
