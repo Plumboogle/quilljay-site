@@ -60,7 +60,8 @@ def simulate(path: Path, day: date, seed: int, s0: float = 578.40) -> None:
         atm = round(mark)
         for k in range(atm - 8, atm + 9):
             for right in "CP":
-                iv = 0.14 + 0.9 * ((k - mark) / mark) ** 2 * 100 + (0.03 if right == "P" and k < mark else 0)
+                m = (k - mark) / mark
+                iv = 0.14 + 90 * m * m - 1.5 * m  # smile, lower strikes richer; smooth so prices don't jump
                 mid = bs(mark, k, t_left, iv, right)
                 spread = 0.01 if mid < 1.5 else 0.02 if mid < 5 else 0.03
                 if rnd.random() < 0.02:

@@ -460,7 +460,7 @@ function tag(x, y, text, bg, fg = "#05080A") {
 
 function drawLine(w, h, arcade) {
   const d = S.day, p = S.acct.pos, m = S.acct.mark(d, idx());
-  const b = S.pos, span = arcade ? ARCADE_WIN[S.speed] || 300 : Math.min(S.zoom, DAY_S);
+  const b = S.pos, span = arcade ? Math.min(ARCADE_WIN[S.speed] || 300, Math.max(60, b)) : Math.min(S.zoom, DAY_S);
   const a = arcade ? b - span : Math.max(0, Math.min(b - span, DAY_S - span));
   const right = arcade ? w - 70 : w - 64, x0 = arcade ? 0 : 8, top = arcade ? 30 : 48, bot = h - (arcade ? 30 : 28);
   const xHead = arcade ? right : x0 + ((b - a) / span) * (right - x0);
@@ -505,7 +505,7 @@ function drawLine(w, h, arcade) {
     const ey = Math.round(y(p.spy)) + 0.5;
     ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x0, ey); ctx.lineTo(right, ey); ctx.stroke(); ctx.setLineDash([]);
-    tag(right + 4, ey, `IN ${p.spy.toFixed(2)}`, C.amber);
+    tag(x0 + 4, ey, `IN ${p.spy.toFixed(2)}`, C.amber); // left edge: clear of the price tag on the right
     const ex = x0 + ((p.i - a) / span) * (xHead - x0) * (arcade ? 1 : (right - x0) / (xHead - x0 || 1));
     if (ex >= x0) { ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(ex, y(p.spy), 4, 0, 7); ctx.fill(); }
   }
@@ -572,7 +572,7 @@ function drawCandles(w, h) {
   if (p && p.day === d.id) {
     const ey = Math.round(y(p.spy)) + 0.5;
     ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(x0, ey); ctx.lineTo(right, ey); ctx.stroke(); ctx.setLineDash([]);
-    tag(right + 4, ey, `IN ${p.spy.toFixed(2)}`, C.amber);
+    tag(x0 + 4, ey, `IN ${p.spy.toFixed(2)}`, C.amber);
   }
   tag(right + 4, ly, px.toFixed(2), last.c >= last.o ? C.up : C.down);
 
@@ -588,7 +588,7 @@ function drawCandles(w, h) {
   }
   ctx.font = "11px 'JetBrains Mono', monospace"; ctx.textAlign = "right"; ctx.textBaseline = "top";
   ctx.fillStyle = C.muted;
-  ctx.fillText(`${clock(shown.k * B)}  O ${shown.o.toFixed(2)}  H ${shown.h.toFixed(2)}  L ${shown.l.toFixed(2)}  C ${shown.c.toFixed(2)}`, right, 16);
+  ctx.fillText(`${clock(shown.k * B)}  O ${shown.o.toFixed(2)}  H ${shown.h.toFixed(2)}  L ${shown.l.toFixed(2)}  C ${shown.c.toFixed(2)}`, right, 30);
 
   if (pane) drawPremium(x0, right, h - 28 - pane, h - 28, p);
 }

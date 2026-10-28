@@ -93,9 +93,11 @@ body.view-arcade .chartbar { display: none; }
 .hud .sub { color: var(--muted); font-size: 12px; letter-spacing: .1em; margin-top: 8px; }
 .hud .hint { color: var(--muted); font-size: 13px; letter-spacing: .18em; }
 .hud .big { font-family: var(--display); font-size: clamp(48px, 10vw, 120px); line-height: 1; color: var(--text); opacity: .14; }
-.hud.corner { align-items: flex-start; justify-content: flex-start; padding: 52px 14px; }
-.hud.corner .mult { font-size: 42px; text-shadow: none; }
-.hud.corner .pnl { font-size: 16px; margin-top: 2px; }
+/* Line/Pro: one compact row beside the chart buttons (the side panel has the details) */
+.hud.corner { inset: 10px auto auto 200px; flex-direction: row; align-items: baseline; gap: 10px; padding: 0; }
+.hud.corner .mult { font-size: 26px; text-shadow: none; }
+.hud.corner .pnl { font-size: 13px; margin-top: 0; }
+.hud.corner .sub { display: none; }
 .up { color: var(--up); } .down { color: var(--down); }
 
 .overlay { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center;
