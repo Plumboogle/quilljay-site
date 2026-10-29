@@ -302,10 +302,15 @@
   function warm() {
     if (warmed) return;
     warmed = true;
-    for (const f of ['/play/', '/play/app.js', '/play/engine.js', '/play/play.css']) {
-      const l = document.createElement('link'); l.rel = 'prefetch'; l.href = f; document.head.appendChild(l);
-    }
-    fetch('/play/days/index.json').then((r) => r.json()).then((j) => j.days[0] && fetch('/play/days/' + j.days[0].file)).catch(() => {});
+    // the page only (its scripts carry a ?v= version this page doesn't know), then the day the game will open:
+    // the player's saved day if any, else the newest
+    const l = document.createElement('link'); l.rel = 'prefetch'; l.href = '/play/'; document.head.appendChild(l);
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('qj-play-v1') || 'null')?.day; } catch {}
+    fetch('/play/days/index.json').then((r) => r.json()).then((j) => {
+      const d = j.days.find((x) => x.id === saved) || j.days[0];
+      if (d) fetch('/play/days/' + d.file);
+    }).catch(() => {});
   }
   launch.addEventListener('pointerenter', warm);
   launch.addEventListener('focus', warm);

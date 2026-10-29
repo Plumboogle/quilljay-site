@@ -193,7 +193,8 @@ export class Account {
 
   // Call every tick: sells at 15:50 (and at the end of the data). Returns the close result or null.
   step(day, i) {
-    if (this.pos && this.pos.day === day.id && i >= FLATTEN_S) return this.close(day, Math.min(i, day.n - 1), "15:50");
+    // at 60x a frame can jump ~15 s (more over a gap): sell at 15:50's own quote, not the second we landed on
+    if (this.pos && this.pos.day === day.id && i >= FLATTEN_S) return this.close(day, Math.min(FLATTEN_S, day.n - 1), "15:50");
     return null;
   }
 

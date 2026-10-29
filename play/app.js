@@ -1,7 +1,7 @@
 // QuillJay Play: the page. Replays a recorded day second by second and trades it with practice money.
 // Market rules live in engine.js. A live mode later swaps the replay clock and the Account for the zdte app's
 // quote stream and broker (see README.md); the views and buttons stay as they are.
-import { Account, DAY_S, FEE, FLATTEN_S, START_CASH, breakeven, chain, clock, decodeDay, key, live, pick, price, quote } from "./engine.js?v=20261028c"; // ?v= matches index.html: a cached old engine never mixes with a new page
+import { Account, DAY_S, FEE, FLATTEN_S, START_CASH, breakeven, chain, clock, decodeDay, key, live, pick, price, quote } from "./engine.js?v=20261029a"; // ?v= matches index.html: a cached old engine never mixes with a new page
 
 const $ = (id) => document.getElementById(id);
 const STORE = "qj-play-v1";
@@ -70,7 +70,7 @@ async function init() {
   sel.innerHTML = S.index.map((d) => `<option value="${d.id}">${d.synthetic ? "Sample · synthetic" : d.date}</option>`).join("");
   const open = S.acct.pos?.day;
   if (open && !S.index.some((d) => d.id === open)) { // the day of a saved open trade is gone: give the money back
-    S.acct.cash += S.acct.pos.cost;
+    S.acct.cash = Math.round((S.acct.cash + S.acct.pos.cost) * 100) / 100;
     S.acct.pos = null;
   }
   const first = open || (S.index.some((d) => d.id === S.savedDay) ? S.savedDay : S.index[0]?.id);
@@ -78,19 +78,26 @@ async function init() {
   requestAnimationFrame(frame);
 }
 
+let loadSeq = 0;
 async function loadDay(id, pos = 0) {
   const meta = S.index.find((d) => d.id === id);
   if (!meta) return;
+  const seq = ++loadSeq; // a newer loadDay (quick day switches) wins; older responses are dropped
   $("day").value = id;
   S.playing = false;
+  S.loading = true; // no trading or playing until the new day is in: a trade now would land on the old day
   showOverlay(`<h1>Loading</h1><p>${meta.synthetic ? "Sample day" : meta.date}</p>`);
+  let day;
   try {
     const r = await fetch(`days/${meta.file}`);
-    S.day = decodeDay(await r.json());
+    day = decodeDay(await r.json());
   } catch (e) {
-    showOverlay(`<h1>No data</h1><p>Couldn't load ${meta.date}.</p>`);
+    if (seq === loadSeq) showOverlay(`<h1>No data</h1><p>Couldn't load ${meta.date}.</p>`);
     return;
   }
+  if (seq !== loadSeq) return;
+  S.day = day;
+  S.loading = false;
   S.meta = meta;
   S.pos = Math.min(Math.max(0, pos || 0), S.day.n - 1);
   S.disp = null;
@@ -104,7 +111,8 @@ async function loadDay(id, pos = 0) {
 
 function startOverlay() {
   const resumed = S.pos > 0;
-  const bust = !S.acct.pos && S.acct.cash < 5;
+  const asks = ["long", "short"].map(currentPick).filter(Boolean).map((c) => c.ask);
+  const bust = !S.acct.pos && (S.acct.cash < 5 || (asks.length > 0 && asks.every((a) => S.acct.maxQty(a) < 1)));
   showOverlay(`<div class="box">
     <h1>${resumed ? "Paused" : bust ? "Busted" : "Ready"}</h1>
     <p>${S.day.synthetic ? "Sample day" : S.day.date} · SPY 0DTE · ${clock(S.pos, false)} NY<br>
@@ -129,19 +137,20 @@ function showOverlay(html) {
   const o = $("overlay");
   o.innerHTML = html.startsWith("<div") ? html : `<div class="box">${html}</div>`;
   o.hidden = false;
+  o.querySelector("button")?.focus({ preventScroll: true });
 }
 const hideOverlay = () => ($("overlay").hidden = true);
 
 $("overlay").addEventListener("click", (e) => {
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (act === "start") play(true);
-  if (act === "restart") { S.pos = 0; S.ended = false; S.disp = null; play(true); }
+  if (act === "restart") { exit(); S.pos = 0; S.ended = false; S.disp = null; play(true); } // sell first: no time travel
   if (act === "next") loadDay(S.index[S.index.findIndex((d) => d.id === S.day.id) + 1].id, 0);
   if (act === "reset") resetAccount();
 });
 
 function play(on) {
-  if (!S.day) return;
+  if (!S.day || S.loading) return;
   if (on && S.ended) return;
   S.playing = on;
   $("playBtn").innerHTML = on ? ICON_PAUSE : ICON_PLAY;
@@ -169,7 +178,9 @@ function buildChips() {
   $("longBtn").onclick = () => enter("long");
   $("shortBtn").onclick = () => enter("short");
   $("exitBtn").onclick = exit;
-  $("resetBtn").onclick = () => { if (confirm("Reset practice cash to $1,000 and clear the trade log?")) resetAccount(); };
+  for (const id of ["resetBtn", "resetBtn2"]) {
+    $(id).onclick = () => { if (confirm("Reset practice cash to $1,000 and clear the trade log?")) resetAccount(); };
+  }
   $("day").onchange = (e) => {
     if (S.acct.pos) {
       if (!confirm("Cash out the open trade at the current bid and switch day?")) { e.target.value = S.day.id; return; }
@@ -217,17 +228,18 @@ function setQty(n) {
 }
 
 const idx = () => Math.min(Math.floor(S.pos), S.day ? S.day.n - 1 : 0);
+const otm = () => (S.view === "arcade" ? 0 : S.otm); // Arcade hides the strike picker: always at the money
 function currentPick(side) {
   if (!S.day) return null;
-  const i = idx(), o = pick(S.day, i, side, S.otm);
+  const i = idx(), o = pick(S.day, i, side, otm());
   return o ? { opt: o, ...quote(S.day, o, i) } : null;
 }
 
 function enter(side, opt) {
-  if (!S.day || S.ended) return;
+  if (!S.day || S.ended || S.loading) return;
   if (!S.playing && !S.acct.pos) play(true);
   const i = idx();
-  opt = opt || pick(S.day, i, side, S.otm);
+  opt = opt || pick(S.day, i, side, otm());
   const q = opt ? quote(S.day, opt, i) : null;
   const want = S.qty === "max" ? S.acct.maxQty(q?.ask ?? 0) : S.qty;
   const r = S.acct.open(S.day, i, side, opt, Math.max(1, want));
@@ -252,6 +264,7 @@ function bindKeys() {
   addEventListener("keydown", (e) => {
     if (e.target.closest("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
+    if ((k === " " || k === "enter") && e.target.closest("button")) return; // a focused button handles its own press
     if (k === "arrowup" || k === "l") enter("long");
     else if (k === "arrowdown" || k === "s") enter("short");
     else if (k === " " || k === "x") (S.acct.pos ? exit() : play(!S.playing));
@@ -265,7 +278,7 @@ function bindKeys() {
 }
 
 // ---------- clock ----------
-let last = performance.now(), lastSave = 0;
+let last = performance.now(), lastSave = 0, lastSig = "";
 function frame(now) {
   const dt = Math.min(now - last, 250) / 1000;
   last = now;
@@ -286,7 +299,11 @@ function frame(now) {
     const target = price(S.day, idx());
     const ease = (cur, to) => (cur == null || !S.playing ? to : cur + (to - cur) * (1 - Math.exp(-dt * 14)));
     S.disp = ease(S.disp, target);
-    render();
+    // paused: draw only when something on screen would change (battery)
+    const sig = [idx(), S.view, S.speed, S.qty, S.otm, S.zoom, S.bar, S.hover?.x, S.hover?.y, S.acct.cash, !!S.acct.pos,
+      S.acct.trades.length, S.ended, S.loading, cv.clientWidth, cv.clientHeight].join("|");
+    if (S.playing || sig !== lastSig) render();
+    lastSig = sig;
     if (now - lastSave > 2000) { save(); lastSave = now; }
   }
   requestAnimationFrame(frame);
@@ -319,7 +336,7 @@ function render() {
   } else {
     for (const side of ["long", "short"]) {
       const c = currentPick(side), btn = $(`${side}Btn`);
-      btn.disabled = !c || cutoff || gap || S.ended;
+      btn.disabled = !c || cutoff || gap || S.ended || S.loading;
       const n = S.qty === "max" ? S.acct.maxQty(c?.ask ?? 0) : S.qty;
       setText($(`${side}Sub`), cutoff ? "closed after 15:50" : !c || gap ? "no quote" : `${n}× ${cname(c.opt)} @ ${c.ask.toFixed(2)} · ${usd(n * (c.ask * 100 + FEE))}`);
     }
@@ -394,7 +411,7 @@ function niceStep(range, n) {
 }
 
 function fit() {
-  const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  const dpr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; // 3x phones: 2x looks the same
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   return { w, h };
@@ -456,6 +473,16 @@ function axes(y, x0, x1, top, bot, tx) {
   }
 }
 
+// The fixed ENTRY + FEES line; when it's outside the chart, just its tag at the edge with an arrow
+function levelLine(y, lvl, x0, x1, top, bot) {
+  const ly = Math.round(Math.min(bot, Math.max(top, y(lvl)))) + 0.5, off = y(lvl) < top ? " \u2191" : y(lvl) > bot ? " \u2193" : "";
+  if (!off) {
+    ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, ly); ctx.lineTo(x1, ly); ctx.stroke(); ctx.setLineDash([]);
+  }
+  tag(x0 + 4, ly, `ENTRY + FEES ${lvl.toFixed(2)}${off}`, C.amber);
+}
+
 function tag(x, y, text, bg, fg = "#05080A") {
   ctx.font = "800 11px 'JetBrains Mono', monospace";
   const w = ctx.measureText(text).width + 10;
@@ -482,8 +509,8 @@ function drawLine(w, h, arcade) {
   if (!pts.length) return;
   pts[pts.length - 1].x = xHead;
   pts[pts.length - 1].v = S.disp;
-  let lo = Math.min(...pts.map((q) => q.lo), S.disp), hi = Math.max(...pts.map((q) => q.hi), S.disp);
-  if (hd) { lo = Math.min(lo, hd.lvl); hi = Math.max(hi, hd.lvl); } // a few cents from the entry: keeps it on screen
+  // the scale comes from the price line only: buying (and its ENTRY + FEES level) never rescales the chart
+  const lo = Math.min(...pts.map((q) => q.lo), S.disp), hi = Math.max(...pts.map((q) => q.hi), S.disp);
   const y = yScale(lo, hi, top, bot, arcade ? 0.3 : 0.15);
   if (!arcade) axes(y, x0, right, top, bot, [a, a + span]);
   else { // faint grid only
@@ -515,10 +542,7 @@ function drawLine(w, h, arcade) {
   ctx.restore();
 
   if (hd) {
-    const ly = Math.round(y(hd.lvl)) + 0.5;
-    ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x0, ly); ctx.lineTo(right, ly); ctx.stroke(); ctx.setLineDash([]);
-    tag(x0 + 4, ly, `ENTRY + FEES ${hd.lvl.toFixed(2)}`, C.amber);
+    levelLine(y, hd.lvl, x0, right, top, bot);
     if (hd.p.i >= a) { // where you bought
       ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(x0 + ((hd.p.i - a) / span) * (right - x0), y(hd.p.spy), 4, 0, 7); ctx.fill();
     }
@@ -557,9 +581,7 @@ function drawCandles(w, h) {
     if (o != null) bars.push({ k, o: o / 100, h: hi / 100, l: lo / 100, c: c / 100 });
   }
   if (!bars.length) return;
-  let lo = Math.min(...bars.map((x) => x.l)), hi = Math.max(...bars.map((x) => x.h));
-  const hd = held(i);
-  if (hd) { lo = Math.min(lo, hd.lvl); hi = Math.max(hi, hd.lvl); }
+  const lo = Math.min(...bars.map((x) => x.l)), hi = Math.max(...bars.map((x) => x.h)), hd = held(i);
   const y = yScale(lo, hi, top, bot, 0.15);
   const slot = (right - x0) / nb, X = (k) => x0 + (k - first + 0.5) * slot;
   axes(y, x0, right, top, bot, null);
@@ -584,11 +606,7 @@ function drawCandles(w, h) {
   const px = price(d, i), last = bars[bars.length - 1];
   const ly = Math.round(y(px)) + 0.5;
   ctx.setLineDash([3, 4]); ctx.strokeStyle = C.muted; ctx.beginPath(); ctx.moveTo(x0, ly); ctx.lineTo(right, ly); ctx.stroke(); ctx.setLineDash([]);
-  if (hd) {
-    const ly = Math.round(y(hd.lvl)) + 0.5;
-    ctx.setLineDash([6, 6]); ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(x0, ly); ctx.lineTo(right, ly); ctx.stroke(); ctx.setLineDash([]);
-    tag(x0 + 4, ly, `ENTRY + FEES ${hd.lvl.toFixed(2)}`, C.amber);
-  }
+  if (hd) levelLine(y, hd.lvl, x0, right, top, bot);
   tag(right + 4, ly, px.toFixed(2), last.c >= last.o ? C.up : C.down);
 
   // crosshair + OHLC of the hovered bar

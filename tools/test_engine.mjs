@@ -175,3 +175,16 @@ test("page, script and engine carry the same version (phones cache files ~10 min
   assert.equal(html.match(/play\.css\?v=(\w+)/)[1], v);
   assert.equal(app.match(/engine\.js\?v=(\w+)/)[1], v);
 });
+
+test("15:50 flatten sells at 15:50's quote even when the clock jumped past it", () => {
+  const d = decodeDay({
+    v: 1, id: "f", date: "2026-10-27", und: "SPY", t0: 0, n: N, synthetic: true,
+    spy: { i0: 0, len: N, d: run(58000, N), g: [] },
+    opts: [{ r: "C", k: 580, i0: 0, len: N, b: `120,~${FLATTEN_S},-10,~${N - FLATTEN_S - 2}`, s: run(2, N), g: [] }],
+  });
+  const a = new Account(1000);
+  a.open(d, 10, "long", d.opts.get("C580"), 1);
+  const t = a.step(d, FLATTEN_S + 14).trade; // bid 1.20 through 15:50:00, 1.10 from 15:50:01
+  assert.equal(t.out, FLATTEN_S);
+  assert.equal(t.bid, 1.2);
+});

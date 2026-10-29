@@ -149,6 +149,7 @@ body.pos-in .hud:not(.corner) { background: radial-gradient(ellipse 34% 30% at 5
 .log li:first-child { border-top: 0; }
 .log .side-l { color: var(--up); font-weight: 800; } .log .side-s { color: var(--down); font-weight: 800; }
 .log .meta { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
+.link.inline { padding: 0; margin-left: 4px; }
 .link { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 10px 0 0; font-size: 11px;
   text-transform: uppercase; letter-spacing: .08em; }
 
