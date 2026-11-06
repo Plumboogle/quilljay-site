@@ -1,4 +1,4 @@
-import { compute, goalAt, logTicks, tradeTicks, valueTicks } from "./stats.js?v=20261106b";
+import { compute, goalAt, logTicks, tradeTicks, valueTicks } from "./stats.js?v=20261106c";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -14,6 +14,7 @@ let scale = "log";
 
 function renderSummary(data) {
   $("sample").hidden = !data.sample;
+  if (data.sample) $("valuelabel").textContent = "Sample account value";
   const opening = data.status === "opening";
   $("status").hidden = !opening;
   if (opening) $("status").textContent = "Account opening";

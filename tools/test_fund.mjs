@@ -63,14 +63,21 @@ test("normal-scale ticks are round numbers from zero", () => {
   assert.deepEqual(valueTicks(1100), [0, 500, 1000]);
 });
 
-test("the published file is the real start: no sample trades, only allowed fields", () => {
+test("the published file: real $999 start, allowed fields, and any trades before the account opens are flagged as a sample", () => {
   const d = JSON.parse(readFileSync(new URL("../fund/trades.json", import.meta.url)));
   assert.equal(d.start, 999);
-  assert.equal(d.sample, undefined);
-  assert.deepEqual(Object.keys(d).sort(), ["start", "status", "trades", "updated"]);
+  const top = new Set(["start", "status", "trades", "updated", "sample"]);
+  assert.ok(Object.keys(d).every((k) => top.has(k)));
+  if (d.status === "opening" && d.trades.length) assert.equal(d.sample, true);
+  if (d.status === "open") assert.equal(d.sample, undefined);
   const ok = new Set(["date", "by", "contract", "side", "qty", "in", "out", "fees", "mult"]);
   d.trades.forEach((x, i) => { checkTrade(x, i); assert.ok(Object.keys(x).every((k) => ok.has(k))); });
   compute(d);
+});
+
+test("the sample banner exists for the page to show", () => {
+  const page = readFileSync(new URL("../fund/index.html", import.meta.url), "utf8");
+  assert.ok(/id="sample"[^>]*>Sample data\. These trades are made up/.test(page));
 });
 
 test("the page and its scripts use one version", () => {

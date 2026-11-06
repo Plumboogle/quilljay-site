@@ -18,7 +18,7 @@ The chart has Log and Normal scales. Value, chart and stats are all worked out f
 
     {"date": "2026-12-01", "by": "J", "contract": "SPY 600C 0DTE", "side": "long", "qty": 1, "in": 1.00, "out": 1.50, "fees": 1.36}
 
-`by` is a trader's initial (J, Q or W), never a name. `mult` defaults to 100 for options; use 1 for shares. Set `updated` to the
+**The file holds made-up sample trades for now (`"sample": true`, which shows the banner). When the account opens, delete them, remove `sample`, and set `status` to `"open"`.** `by` is a trader's initial (J, Q or W), never a name. `mult` defaults to 100 for options; use 1 for shares. Set `updated` to the
 time of the update, and `status` to `"open"` once the account is funded. Value is the $999 start plus closed trades, so it is
 as of the last update, not live. Never show live option quotes or account details here. Bump `?v=` in `fund/index.html` and
 `fund/app.js` together when the code changes (a test checks they match). `npm test` runs `tools/test_fund.mjs`.
