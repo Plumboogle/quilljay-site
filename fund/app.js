@@ -1,4 +1,4 @@
-import { compute, goalAt, logTicks, tradeTicks, valueTicks } from "./stats.js?v=20261106d";
+import { compute, goalAt, logTicks, tradeTicks, valueTicks } from "./stats.js?v=20261106e";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -43,7 +43,7 @@ function renderSummary(data) {
   $("count").textContent = S.n ? `${S.n}, newest first` : "";
   $("trades").innerHTML = S.n
     ? `<tr><th class="r">#</th><th>Date</th><th>By</th><th>Trade</th><th class="r">Qty</th><th class="r">In</th><th class="r">Out</th><th class="r">P&amp;L</th><th class="r">Gain</th><th class="r">Value after</th></tr>` +
-      [...S.rows].reverse().map((r) => `<tr><td class="r">${r.n}</td><td>${esc(r.date)}</td><td>${esc(r.by)}</td><td>${esc(r.side)} ${esc(r.contract)}</td><td class="r">${esc(r.qty)}</td><td class="r">${r.in.toFixed(2)}</td><td class="r">${r.out.toFixed(2)}</td><td class="r ${tone(r.pnl)}">${smoney(r.pnl)}</td><td class="r ${tone(r.pnl)}">${pct(r.pct)}</td><td class="r">${money(r.value)}</td></tr>`).join("")
+      [...S.rows].reverse().map((r) => `<tr><td class="r">${r.n}</td><td>${esc(r.date)}</td><td>${esc(r.by)}</td><td>${r.side === "short" ? "Short " : ""}${esc(r.contract)}</td><td class="r">${esc(r.qty)}</td><td class="r">${r.in.toFixed(2)}</td><td class="r">${r.out.toFixed(2)}</td><td class="r ${tone(r.pnl)}">${smoney(r.pnl)}</td><td class="r ${tone(r.pnl)}">${pct(r.pct)}</td><td class="r">${money(r.value)}</td></tr>`).join("")
     : `<tr><td class="empty">No trades yet. The first one shows up here.</td></tr>`;
 }
 
