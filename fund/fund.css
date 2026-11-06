@@ -44,6 +44,7 @@ main {
 h2 { margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
 h2 .mute { letter-spacing: 0; text-transform: none; }
 .phead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .range { display: flex; }
 .range button {
   font: inherit; font-size: 12px; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--line);

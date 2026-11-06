@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { checkTrade, compute, goalAt, logTicks, tradePnl, tradeTicks, tradesToGoal } from "../fund/stats.js";
+import { checkTrade, compute, goalAt, logTicks, tradePnl, tradeTicks, tradesToGoal, valueTicks } from "../fund/stats.js";
 
 const t = (over = {}) => ({ date: "2026-12-01", by: "J", contract: "SPY 600C", side: "long", qty: 1, in: 1, out: 1.5, fees: 1.36, ...over });
 
@@ -56,6 +56,11 @@ test("axis ticks stay inside the range", () => {
   assert.ok(ys.every((v) => v >= 900 && v <= 1250000) && ys.length <= 6 && ys.includes(1000000));
   assert.deepEqual(tradeTicks(10, 5), [0, 2, 4, 6, 8, 10]);
   assert.equal(tradeTicks(695, 7).at(-1), 600);
+});
+
+test("normal-scale ticks are round numbers from zero", () => {
+  assert.deepEqual(valueTicks(1060000), [0, 500000, 1000000]);
+  assert.deepEqual(valueTicks(1100), [0, 500, 1000]);
 });
 
 test("the published file is the real start: no sample trades, only allowed fields", () => {

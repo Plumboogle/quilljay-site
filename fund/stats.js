@@ -82,3 +82,13 @@ export function tradeTicks(max, want = 6) {
   for (let v = 0; v <= max; v += step) out.push(v);
   return out;
 }
+
+// Round-number ticks from 0 for the normal (not log) value scale.
+export function valueTicks(max, want = 5) {
+  const raw = max / want;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map((m) => m * pow).find((v) => v >= raw);
+  const out = [];
+  for (let v = 0; v <= max; v += step) out.push(v);
+  return out;
+}

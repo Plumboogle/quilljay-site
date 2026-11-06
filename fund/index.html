@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="fund.css?v=20261106a">
+<link rel="stylesheet" href="fund.css?v=20261106b">
 </head>
 <body>
 <main>
@@ -26,9 +26,15 @@
   <section class="panel">
     <div class="phead">
       <h2>Real vs. the goal</h2>
-      <div class="range" role="group" aria-label="Chart range">
-        <button type="button" id="r_date">To date</button>
-        <button type="button" id="r_full">Full path</button>
+      <div class="controls">
+        <div class="range" role="group" aria-label="Chart range">
+          <button type="button" id="r_date">To date</button>
+          <button type="button" id="r_full">Full path</button>
+        </div>
+        <div class="range" role="group" aria-label="Value scale">
+          <button type="button" id="s_log">Log</button>
+          <button type="button" id="s_normal">Normal</button>
+        </div>
       </div>
     </div>
     <div class="legend">
@@ -36,7 +42,7 @@
       <span><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" class="l-goal"/></svg>Goal: +1% a trade</span>
     </div>
     <div class="plot" id="plot"><div class="tip" id="tip" hidden></div></div>
-    <div class="axisnote mute">Trade number across. Value up, on a log scale, so steady percent growth is a straight line.</div>
+    <div class="axisnote mute" id="axisnote"></div>
   </section>
   <section class="panel">
     <h2>Every trade <span class="mute" id="count"></span></h2>
@@ -44,6 +50,6 @@
   </section>
   <footer><span>&copy; 2026 QUILLJAY</span><span>Private account, not open to outside money. Not financial advice.</span></footer>
 </main>
-<script type="module" src="app.js?v=20261106a"></script>
+<script type="module" src="app.js?v=20261106b"></script>
 </body>
 </html>
