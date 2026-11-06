@@ -12,6 +12,17 @@ details and private plans out of the repo.
 - `npm test`: 16 engine tests (node) and 5 exporter tests (python), all green.
 - A full independent code review was done on 2026-10-29. All nine findings are fixed in `d808114`.
 
+## Account tracker (`/fund/`)
+
+Value, chart and stats are all worked out from `fund/trades.json`; nothing else needs editing. Add closed trades oldest first:
+
+    {"date": "2026-12-01", "by": "J", "contract": "SPY 600C 0DTE", "side": "long", "qty": 1, "in": 1.00, "out": 1.50, "fees": 1.36}
+
+`by` is a trader's initial (J, Q or W), never a name. `mult` defaults to 100 for options; use 1 for shares. Set `updated` to the
+time of the update, and `status` to `"open"` once the account is funded. Value is the $999 start plus closed trades, so it is
+as of the last update, not live. Never show live option quotes or account details here. Bump `?v=` in `fund/index.html` and
+`fund/app.js` together when the code changes (a test checks they match). `npm test` runs `tools/test_fund.mjs`.
+
 ## Rules the owner set (keep them)
 
 - **The chart must not change when LONG/SHORT is clicked**: same line, same scale, no layout shift. Buying only adds an
