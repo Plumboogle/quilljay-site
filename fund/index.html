@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QUILLJAY Tracker</title>
+<meta name="description" content="QUILLJAY: $999 to $1,000,000. Every trade, against a goal of 1% a trade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fund.css?v=20261106a">
+</head>
+<body>
+<main>
+  <nav class="top"><a href="/"><b>QUILLJAY</b></a><span>Ticker <b>QWJ</b></span></nav>
+  <p class="sample" id="sample" hidden>Sample trades for this preview. None of these are real.</p>
+  <header class="hero">
+    <div class="status" id="status" hidden></div>
+    <div class="label">Account value</div>
+    <div class="value" id="value">–</div>
+    <div class="sub"><span id="ret"></span><span class="mute">of <b id="start"></b> to <b>$1,000,000</b></span></div>
+    <div class="gap" id="gap"></div>
+    <div class="asof mute" id="asof"></div>
+  </header>
+  <section class="stats" id="stats" aria-label="Summary"></section>
+  <section class="panel">
+    <div class="phead">
+      <h2>Real vs. the goal</h2>
+      <div class="range" role="group" aria-label="Chart range">
+        <button type="button" id="r_date">To date</button>
+        <button type="button" id="r_full">Full path</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" class="l-real"/></svg>Real account</span>
+      <span><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" class="l-goal"/></svg>Goal: +1% a trade</span>
+    </div>
+    <div class="plot" id="plot"><div class="tip" id="tip" hidden></div></div>
+    <div class="axisnote mute">Trade number across. Value up, on a log scale, so steady percent growth is a straight line.</div>
+  </section>
+  <section class="panel">
+    <h2>Every trade <span class="mute" id="count"></span></h2>
+    <div class="scroll"><table id="trades"></table></div>
+  </section>
+  <footer><span>&copy; 2026 QUILLJAY</span><span>Private account, not open to outside money. Not financial advice.</span></footer>
+</main>
+<script type="module" src="app.js?v=20261106a"></script>
+</body>
+</html>

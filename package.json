@@ -2,6 +2,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tools/test_engine.mjs && python3 -m unittest discover -s tools"
+    "test": "node --test tools/test_engine.mjs tools/test_fund.mjs && python3 -m unittest discover -s tools"
   }
 }

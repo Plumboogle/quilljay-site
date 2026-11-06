@@ -166,6 +166,8 @@
   .launch small { font-size: 12px; font-weight: 800; letter-spacing: .14em; opacity: .75; }
   .launch:hover, .launch:focus-visible { transform: translateY(-2px); outline: none; }
   .launch:focus-visible { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--up); }
+  .tracklink { align-self: flex-start; color: var(--text); font-size: 13px; letter-spacing: .08em; text-underline-offset: 4px; }
+  .tracklink:hover, .tracklink:focus-visible { color: var(--up); outline: none; }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 rgba(34,224,122,0); } 50% { box-shadow: 0 0 36px rgba(34,224,122,.45); } }
   .warp { position: fixed; inset: 0; z-index: 50; pointer-events: none; visibility: hidden; background: var(--up);
     clip-path: circle(0 at var(--x, 50%) var(--y, 50%)); }
@@ -215,6 +217,7 @@
         <span>Exchange <b>quilljay.com</b></span>
       </div>
       <a class="launch" id="launch" href="/play/"><b>Play the market <svg class="tri" viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 10 6 0 12z" fill="currentColor"/></svg></b><small>SPY 0DTE &middot; practice money</small></a>
+      <a class="tracklink" href="/fund/">Track the account: every trade, $999 to $1M</a>
     </div>
   </section>
   <div class="warp" id="warp" aria-hidden="true"></div>
