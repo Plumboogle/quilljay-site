@@ -6,7 +6,8 @@
   Pro can buy any strike from the chain). **Cash out** sells. One trade at a time.
 - Fills: buy at the quoted ask, sell at the quoted bid, $0.68 a contract each way (Schwab's $0.65 + ~$0.03 regulatory,
   as the zdte-bot backtester). Every number shown already includes both sides' fees: CASH OUT pays what it says. No new trades from 15:50; an open
-  trade is sold at 15:50 (the zdte-bot's flatten). A contract with no quote is valued at intrinsic, marked "est.".
+  trade is sold at 15:50 (the zdte-bot's flatten). A held contract with no quote keeps its last quote for up to 30 s,
+  then is valued at intrinsic; either way marked "est.".
 - Views: **Arcade** (a line and the buttons; buying adds a fixed dashed ENTRY + FEES line, a little above the entry
   for a long and below for a short: how far SPY must move to pay back the spread and both fees), **Line** (axes, zoom, trade marks), **Pro** (candles, the chain, the held
   contract's bid). Speeds 1x to 60x; recorder gaps are skipped.
