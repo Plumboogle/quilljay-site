@@ -1,4 +1,4 @@
-import { compute, goalAt, logTicks, tradeTicks, valueTicks } from "./stats.js?v=20261106c";
+import { compute, goalAt, logTicks, tradeTicks, valueTicks } from "./stats.js?v=20261106d";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -10,7 +10,7 @@ const short = (v) => (v >= 1e6 ? `$${v / 1e6}M` : v >= 1e3 ? `$${v / 1e3}K` : `$
 const whole = (v) => money(v, v >= 1000 ? 0 : 2);
 
 let S, range;
-let scale = "log";
+let scale = "normal";
 
 function renderSummary(data) {
   $("sample").hidden = !data.sample;

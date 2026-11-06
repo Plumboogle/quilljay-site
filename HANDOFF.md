@@ -14,7 +14,7 @@ details and private plans out of the repo.
 
 ## Account tracker (`/fund/`)
 
-The chart has Log and Normal scales. Value, chart and stats are all worked out from `fund/trades.json`; nothing else needs editing. Add closed trades oldest first:
+The chart has Normal (the default) and Log scales. Value, chart and stats are all worked out from `fund/trades.json`; nothing else needs editing. Add closed trades oldest first:
 
     {"date": "2026-12-01", "by": "J", "contract": "SPY 600C 0DTE", "side": "long", "qty": 1, "in": 1.00, "out": 1.50, "fees": 1.36}
 
